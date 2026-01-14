@@ -1,0 +1,85 @@
+//
+//  NotificationService.swift
+//  IntervalNotifier
+//
+//  Created by Uru on 2026/01/14.
+//
+
+import Foundation
+import UserNotifications
+
+enum NotificationServiceError: Error {
+    case notAuthorized
+    case invalidInterval
+    case emptyTitle
+}
+
+final class NotificationService {
+    static let shared = NotificationService()
+
+    private let center: UNUserNotificationCenter
+
+    private init(center: UNUserNotificationCenter = .current()) {
+        self.center = center
+    }
+
+    // Call this right before a group start action. (Step3 will trigger it from the UI.)
+    func requestAuthorization() async throws {
+        let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
+        guard granted else {
+            throw NotificationServiceError.notAuthorized
+        }
+    }
+
+    func schedule(rule: NotifyRule) async throws {
+        guard rule.intervalMinutes >= 1 else {
+            throw NotificationServiceError.invalidInterval
+        }
+        let trimmedTitle = rule.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else {
+            throw NotificationServiceError.emptyTitle
+        }
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else {
+            throw NotificationServiceError.notAuthorized
+        }
+
+        let identifier = requestId(groupId: rule.groupId, ruleId: rule.id)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = trimmedTitle
+        content.body = rule.body
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: TimeInterval(rule.intervalMinutes * 60),
+            repeats: true
+        )
+
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        try await center.add(request)
+    }
+
+    func cancel(rule: NotifyRule) {
+        let identifier = requestId(groupId: rule.groupId, ruleId: rule.id)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    }
+
+    func startGroup(groupId: UUID, rules: [NotifyRule]) async throws {
+        let enabledRules = rules.filter { $0.groupId == groupId && $0.isEnabled }
+        for rule in enabledRules {
+            try await schedule(rule: rule)
+        }
+    }
+
+    func stopGroup(groupId: UUID, rules: [NotifyRule]) {
+        let identifiers = rules
+            .filter { $0.groupId == groupId }
+            .map { requestId(groupId: $0.groupId, ruleId: $0.id) }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    func requestId(groupId: UUID, ruleId: UUID) -> String {
+        "g:\(groupId.uuidString)|r:\(ruleId.uuidString)"
+    }
+}
