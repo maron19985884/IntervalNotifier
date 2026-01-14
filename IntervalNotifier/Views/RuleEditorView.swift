@@ -106,13 +106,14 @@ struct RuleEditorView: View {
             return
         }
 
+        let trimmedBody = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
         let now = Date()
         let rule = NotifyRule(
             id: existingRule?.id ?? UUID(),
             groupId: groupId,
             intervalMinutes: intervalMinutes,
             title: trimmedTitle,
-            body: bodyText,
+            body: trimmedBody,
             isEnabled: isEnabled,
             createdAt: existingRule?.createdAt ?? now,
             updatedAt: now

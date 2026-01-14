@@ -100,7 +100,9 @@ struct GroupDetailView: View {
     private func stopGroup(_ group: NotifyGroup) {
         guard group.isRunning else { return }
         NotificationService.shared.stopGroup(groupId: group.id, rules: store.rules)
-        updateGroupRunning(groupId: group.id, isRunning: false)
+        Task { @MainActor in
+            updateGroupRunning(groupId: group.id, isRunning: false)
+        }
     }
 
     private func updateGroupRunning(groupId: UUID, isRunning: Bool) {
