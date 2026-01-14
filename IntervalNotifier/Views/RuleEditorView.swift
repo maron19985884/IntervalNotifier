@@ -128,9 +128,13 @@ struct RuleEditorView: View {
         Task {
             do {
                 try await NotificationService.shared.schedule(rule: rule)
-                dismiss()
+                await MainActor.run {
+                    dismiss()
+                }
             } catch {
-                alertState = AlertState(title: "通知を更新できません", message: errorMessage(error))
+                await MainActor.run {
+                    alertState = AlertState(title: "通知を更新できません", message: errorMessage(error))
+                }
             }
         }
     }

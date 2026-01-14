@@ -40,7 +40,8 @@ final class NotificationService {
             throw NotificationServiceError.emptyTitle
         }
         let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized else {
+        let status = settings.authorizationStatus
+        guard status == .authorized || status == .provisional else {
             throw NotificationServiceError.notAuthorized
         }
 
@@ -49,7 +50,8 @@ final class NotificationService {
 
         let content = UNMutableNotificationContent()
         content.title = trimmedTitle
-        content.body = rule.body
+        let trimmedBody = rule.body.trimmingCharacters(in: .whitespacesAndNewlines)
+        content.body = trimmedBody
 
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: TimeInterval(rule.intervalMinutes * 60),
