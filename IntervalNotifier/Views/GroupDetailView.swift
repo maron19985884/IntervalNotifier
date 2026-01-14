@@ -86,9 +86,13 @@ struct GroupDetailView: View {
             do {
                 try await NotificationService.shared.requestAuthorization()
                 try await NotificationService.shared.startGroup(groupId: group.id, rules: store.rules)
-                updateGroupRunning(groupId: group.id, isRunning: true)
+                await MainActor.run {
+                    updateGroupRunning(groupId: group.id, isRunning: true)
+                }
             } catch {
-                alertState = AlertState(title: "開始できません", message: errorMessage(error))
+                await MainActor.run {
+                    alertState = AlertState(title: "開始できません", message: errorMessage(error))
+                }
             }
         }
     }
@@ -119,7 +123,9 @@ struct GroupDetailView: View {
                 do {
                     try await NotificationService.shared.schedule(rule: updated)
                 } catch {
-                    alertState = AlertState(title: "通知を更新できません", message: errorMessage(error))
+                    await MainActor.run {
+                        alertState = AlertState(title: "通知を更新できません", message: errorMessage(error))
+                    }
                 }
             }
         } else {

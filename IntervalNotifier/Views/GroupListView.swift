@@ -76,9 +76,13 @@ struct GroupListView: View {
             do {
                 try await NotificationService.shared.requestAuthorization()
                 try await NotificationService.shared.startGroup(groupId: group.id, rules: store.rules)
-                updateGroupRunning(groupId: group.id, isRunning: true)
+                await MainActor.run {
+                    updateGroupRunning(groupId: group.id, isRunning: true)
+                }
             } catch {
-                alertState = AlertState(title: "開始できません", message: errorMessage(error))
+                await MainActor.run {
+                    alertState = AlertState(title: "開始できません", message: errorMessage(error))
+                }
             }
         }
     }
@@ -134,6 +138,7 @@ private struct GroupRow: View {
                     .frame(minWidth: 64)
             }
             .buttonStyle(.bordered)
+            .buttonStyle(.borderless)
             .tint(group.isRunning ? .red : .blue)
         }
         .padding(.vertical, 4)
