@@ -15,6 +15,9 @@ struct IntervalNotifierApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
+                .task {
+                    store.load()
+                }
         }
     }
 }
