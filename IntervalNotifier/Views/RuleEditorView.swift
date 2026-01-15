@@ -128,7 +128,7 @@ struct RuleEditorView: View {
 
         Task {
             do {
-                try await NotificationService.shared.schedule(rule: rule)
+                try await NotificationService.shared.schedule(rule: rule, soundEnabled: store.isSoundEnabled)
                 await MainActor.run {
                     dismiss()
                 }

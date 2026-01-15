@@ -21,9 +21,16 @@ final class AppStore: ObservableObject {
             save()
         }
     }
+    @Published var isSoundEnabled = false {
+        didSet {
+            guard !suppressAutosave else { return }
+            save()
+        }
+    }
 
     private let groupsKey = "groups_v1"
     private let rulesKey = "rules_v1"
+    private let soundEnabledKey = "sound_enabled_v1"
     private let defaults: UserDefaults
     private var suppressAutosave = false
 
@@ -43,12 +50,14 @@ final class AppStore: ObservableObject {
         suppressAutosave = true
         groups = decode([NotifyGroup].self, forKey: groupsKey) ?? []
         rules = decode([NotifyRule].self, forKey: rulesKey) ?? []
+        isSoundEnabled = defaults.bool(forKey: soundEnabledKey)
         suppressAutosave = false
     }
 
     func save() {
         encode(groups, forKey: groupsKey)
         encode(rules, forKey: rulesKey)
+        defaults.set(isSoundEnabled, forKey: soundEnabledKey)
     }
 
     func reconcileNotifications() async {
@@ -62,7 +71,7 @@ final class AppStore: ObservableObject {
                 for rule in enabledRules {
                     let expectedId = service.requestId(groupId: rule.groupId, ruleId: rule.id)
                     if !pendingIds.contains(expectedId) {
-                        try? await service.schedule(rule: rule)
+                        try? await service.schedule(rule: rule, soundEnabled: isSoundEnabled)
                     }
                 }
                 for rule in disabledRules {

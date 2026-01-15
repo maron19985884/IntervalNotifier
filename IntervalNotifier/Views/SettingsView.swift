@@ -10,6 +10,7 @@ import UserNotifications
 import UIKit
 
 struct SettingsView: View {
+    @EnvironmentObject private var store: AppStore
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
 
     private var statusText: String {
@@ -47,6 +48,12 @@ struct SettingsView: View {
                     Text(statusText)
                         .foregroundColor(.secondary)
                 }
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("通知音", isOn: $store.isSoundEnabled)
+                    Text("ONにすると通知時に音が鳴ります")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
                 Text("通知を受け取るには、許可が必要です。\n許可がない場合は設定アプリから変更してください。")
                     .font(.footnote)
                     .foregroundColor(.secondary)
@@ -82,5 +89,6 @@ struct SettingsView: View {
 #Preview {
     NavigationStack {
         SettingsView()
+            .environmentObject(AppStore())
     }
 }

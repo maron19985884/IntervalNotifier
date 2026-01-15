@@ -36,7 +36,7 @@ final class NotificationService {
         return settings.authorizationStatus
     }
 
-    func schedule(rule: NotifyRule) async throws {
+    func schedule(rule: NotifyRule, soundEnabled: Bool) async throws {
         guard rule.intervalMinutes >= 1 else {
             throw NotificationServiceError.invalidInterval
         }
@@ -57,6 +57,9 @@ final class NotificationService {
         content.title = trimmedTitle
         let trimmedBody = rule.body.trimmingCharacters(in: .whitespacesAndNewlines)
         content.body = trimmedBody
+        if soundEnabled {
+            content.sound = .default
+        }
 
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: TimeInterval(rule.intervalMinutes * 60),
@@ -72,10 +75,10 @@ final class NotificationService {
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
     }
 
-    func startGroup(groupId: UUID, rules: [NotifyRule]) async throws {
+    func startGroup(groupId: UUID, rules: [NotifyRule], soundEnabled: Bool) async throws {
         let enabledRules = rules.filter { $0.groupId == groupId && $0.isEnabled }
         for rule in enabledRules {
-            try await schedule(rule: rule)
+            try await schedule(rule: rule, soundEnabled: soundEnabled)
         }
     }
 
