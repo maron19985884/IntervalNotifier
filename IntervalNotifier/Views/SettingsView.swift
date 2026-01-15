@@ -50,6 +50,11 @@ struct SettingsView: View {
                 }
                 VStack(alignment: .leading, spacing: 6) {
                     Toggle("通知音", isOn: $store.isSoundEnabled)
+                        .onChange(of: store.isSoundEnabled) { _ in
+                            Task {
+                                await store.rescheduleAllNotifications()
+                            }
+                        }
                     Text("ONにすると通知時に音が鳴ります")
                         .font(.footnote)
                         .foregroundColor(.secondary)
