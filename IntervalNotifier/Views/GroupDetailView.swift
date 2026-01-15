@@ -14,6 +14,9 @@ struct GroupDetailView: View {
     let groupId: UUID
 
     @State private var showingNewRule = false
+    @State private var showingEditGroup = false
+    @State private var showingDeleteConfirmation = false
+    @State private var editedGroupName = ""
     @State private var alertState: AlertState?
 
     private var group: NotifyGroup? {
@@ -57,7 +60,22 @@ struct GroupDetailView: View {
         .navigationTitle(group?.name ?? "グループ")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(role: .destructive) {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .disabled(group == nil)
+            }
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button {
+                    editedGroupName = group?.name ?? ""
+                    showingEditGroup = true
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                .disabled(group == nil)
                 Button {
                     showingNewRule = true
                 } label: {
@@ -71,12 +89,44 @@ struct GroupDetailView: View {
                 RuleEditorView(groupId: groupId)
             }
         }
+        .sheet(isPresented: $showingEditGroup) {
+            NavigationStack {
+                Form {
+                    Section("グループ名") {
+                        TextField("グループ名", text: $editedGroupName)
+                    }
+                }
+                .navigationTitle("グループ編集")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("キャンセル") {
+                            showingEditGroup = false
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("保存") {
+                            saveGroupName()
+                        }
+                        .disabled(editedGroupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
+        }
         .alert(item: $alertState) { state in
             Alert(
                 title: Text(state.title),
                 message: Text(state.message),
                 dismissButton: .default(Text("OK"))
             )
+        }
+        .alert("グループ削除", isPresented: $showingDeleteConfirmation) {
+            Button("削除", role: .destructive) {
+                deleteGroup()
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("このグループと関連するルールを削除します。")
         }
     }
 
@@ -156,6 +206,25 @@ struct GroupDetailView: View {
     private func removeRules(_ rulesToDelete: [NotifyRule]) {
         let deleteIds = Set(rulesToDelete.map { $0.id })
         store.rules.removeAll { deleteIds.contains($0.id) }
+    }
+
+    private func saveGroupName() {
+        let trimmed = editedGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            alertState = AlertState(title: "入力エラー", message: "グループ名を入力してください。")
+            return
+        }
+        store.updateGroupName(groupId: groupId, name: trimmed)
+        showingEditGroup = false
+    }
+
+    private func deleteGroup() {
+        Task {
+            await store.deleteGroup(groupId: groupId)
+            await MainActor.run {
+                dismiss()
+            }
+        }
     }
 
     private func errorMessage(_ error: Error) -> String {

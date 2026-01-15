@@ -91,6 +91,31 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func rescheduleAllNotifications() async {
+        let service = NotificationService.shared
+        service.removeAllNotifications()
+        for group in groups where group.isRunning {
+            let enabledRules = rules(for: group.id).filter { $0.isEnabled }
+            for rule in enabledRules {
+                try? await service.schedule(rule: rule, soundEnabled: isSoundEnabled)
+            }
+        }
+    }
+
+    func updateGroupName(groupId: UUID, name: String) {
+        guard let index = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        var updated = groups[index]
+        updated.name = name
+        updated.updatedAt = Date()
+        groups[index] = updated
+    }
+
+    func deleteGroup(groupId: UUID) async {
+        groups.removeAll { $0.id == groupId }
+        rules.removeAll { $0.groupId == groupId }
+        await rescheduleAllNotifications()
+    }
+
     private func createSampleGroups() {
         let now = Date()
         groups = [

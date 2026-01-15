@@ -57,9 +57,7 @@ final class NotificationService {
         content.title = trimmedTitle
         let trimmedBody = rule.body.trimmingCharacters(in: .whitespacesAndNewlines)
         content.body = trimmedBody
-        if soundEnabled {
-            content.sound = .default
-        }
+        content.sound = soundEnabled ? .default : nil
 
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: TimeInterval(rule.intervalMinutes * 60),
@@ -96,6 +94,11 @@ final class NotificationService {
             }
         }
         return Set(requests.map { $0.identifier })
+    }
+
+    func removeAllNotifications() {
+        center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
     }
 
     func requestId(groupId: UUID, ruleId: UUID) -> String {
