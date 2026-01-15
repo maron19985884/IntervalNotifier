@@ -31,7 +31,12 @@ struct GroupListView: View {
             }
             .navigationTitle("グループ")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
                     Button {
                         newGroupName = ""
                         showingAddAlert = true
