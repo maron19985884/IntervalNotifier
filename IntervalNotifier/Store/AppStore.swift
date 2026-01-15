@@ -5,19 +5,27 @@
 //  Created by Uru on 2026/01/14.
 //
 
+import Combine
 import Foundation
 
 final class AppStore: ObservableObject {
     @Published var groups: [NotifyGroup] = [] {
-        didSet { save() }
+        didSet {
+            guard !suppressAutosave else { return }
+            save()
+        }
     }
     @Published var rules: [NotifyRule] = [] {
-        didSet { save() }
+        didSet {
+            guard !suppressAutosave else { return }
+            save()
+        }
     }
 
     private let groupsKey = "groups_v1"
     private let rulesKey = "rules_v1"
     private let defaults: UserDefaults
+    private var suppressAutosave = false
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -32,13 +40,46 @@ final class AppStore: ObservableObject {
     }
 
     func load() {
+        suppressAutosave = true
         groups = decode([NotifyGroup].self, forKey: groupsKey) ?? []
         rules = decode([NotifyRule].self, forKey: rulesKey) ?? []
+        suppressAutosave = false
     }
 
     func save() {
         encode(groups, forKey: groupsKey)
         encode(rules, forKey: rulesKey)
+    }
+
+    func reconcileNotifications() async {
+        let service = NotificationService.shared
+        let pendingIds = await service.pendingRequestIds()
+        for group in groups {
+            let groupRules = rules(for: group.id)
+            if group.isRunning {
+                let enabledRules = groupRules.filter { $0.isEnabled }
+                let disabledRules = groupRules.filter { !$0.isEnabled }
+                for rule in enabledRules {
+                    let expectedId = service.requestId(groupId: rule.groupId, ruleId: rule.id)
+                    if !pendingIds.contains(expectedId) {
+                        try? await service.schedule(rule: rule)
+                    }
+                }
+                for rule in disabledRules {
+                    let expectedId = service.requestId(groupId: rule.groupId, ruleId: rule.id)
+                    if pendingIds.contains(expectedId) {
+                        service.cancel(rule: rule)
+                    }
+                }
+            } else {
+                for rule in groupRules {
+                    let expectedId = service.requestId(groupId: rule.groupId, ruleId: rule.id)
+                    if pendingIds.contains(expectedId) {
+                        service.cancel(rule: rule)
+                    }
+                }
+            }
+        }
     }
 
     private func createSampleGroups() {

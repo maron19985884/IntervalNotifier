@@ -81,6 +81,15 @@ final class NotificationService {
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
+    func pendingRequestIds() async -> Set<String> {
+        let requests = await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { pending in
+                continuation.resume(returning: pending)
+            }
+        }
+        return Set(requests.map { $0.identifier })
+    }
+
     func requestId(groupId: UUID, ruleId: UUID) -> String {
         "g:\(groupId.uuidString)|r:\(ruleId.uuidString)"
     }
