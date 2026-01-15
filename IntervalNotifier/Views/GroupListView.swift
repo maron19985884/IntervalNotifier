@@ -80,7 +80,11 @@ struct GroupListView: View {
         Task {
             do {
                 try await NotificationService.shared.requestAuthorization()
-                try await NotificationService.shared.startGroup(groupId: group.id, rules: store.rules)
+                try await NotificationService.shared.startGroup(
+                    groupId: group.id,
+                    rules: store.rules,
+                    soundEnabled: store.isSoundEnabled
+                )
                 await MainActor.run {
                     updateGroupRunning(groupId: group.id, isRunning: true)
                 }

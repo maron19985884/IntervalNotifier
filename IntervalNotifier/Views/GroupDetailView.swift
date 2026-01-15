@@ -85,7 +85,11 @@ struct GroupDetailView: View {
         Task {
             do {
                 try await NotificationService.shared.requestAuthorization()
-                try await NotificationService.shared.startGroup(groupId: group.id, rules: store.rules)
+                try await NotificationService.shared.startGroup(
+                    groupId: group.id,
+                    rules: store.rules,
+                    soundEnabled: store.isSoundEnabled
+                )
                 await MainActor.run {
                     updateGroupRunning(groupId: group.id, isRunning: true)
                 }
@@ -123,7 +127,7 @@ struct GroupDetailView: View {
             guard groupIsRunning else { return }
             Task {
                 do {
-                    try await NotificationService.shared.schedule(rule: updated)
+                    try await NotificationService.shared.schedule(rule: updated, soundEnabled: store.isSoundEnabled)
                 } catch {
                     await MainActor.run {
                         alertState = AlertState(title: "通知を更新できません", message: errorMessage(error))
