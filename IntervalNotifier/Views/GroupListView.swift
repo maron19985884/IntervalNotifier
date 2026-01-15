@@ -16,19 +16,26 @@ struct GroupListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(store.groups) { group in
-                    NavigationLink {
-                        GroupDetailView(groupId: group.id)
-                    } label: {
-                        GroupRow(
-                            group: group,
-                            startAction: { startGroup(group) },
-                            stopAction: { stopGroup(group) }
-                        )
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(store.groups) { group in
+                        NavigationLink {
+                            GroupDetailView(groupId: group.id)
+                        } label: {
+                            GroupCard(
+                                group: group,
+                                startAction: { startGroup(group) },
+                                stopAction: { stopGroup(group) }
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
             }
+            .background(Color(.systemGray6))
             .navigationTitle("グループ")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -126,32 +133,71 @@ struct GroupListView: View {
     }
 }
 
-private struct GroupRow: View {
+private struct GroupCard: View {
     let group: NotifyGroup
     let startAction: () -> Void
     let stopAction: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(group.name)
-                    .font(.headline)
-                Text(group.isRunning ? "稼働中" : "停止中")
-                    .font(.caption)
-                    .foregroundColor(group.isRunning ? .green : .secondary)
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.primary)
+                HStack(spacing: 8) {
+                    Text(group.isRunning ? "稼働中" : "停止中")
+                        .font(.caption)
+                        .foregroundColor(group.isRunning ? .green : .secondary)
+                    if group.isRunning {
+                        Text("RUNNING")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(Color.green)
+                            )
+                    }
+                }
             }
-            Spacer()
+            Spacer(minLength: 12)
             Button {
                 group.isRunning ? stopAction() : startAction()
             } label: {
                 Text(group.isRunning ? "Stop" : "Start")
-                    .font(.subheadline)
-                    .frame(minWidth: 64)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(group.isRunning ? Color.red : Color.blue)
+                    )
             }
-            .buttonStyle(.bordered)
-            .tint(group.isRunning ? .red : .blue)
+            .buttonStyle(PillButtonStyle())
+            .contentShape(Capsule())
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(group.isRunning ? Color.green.opacity(0.12) : Color.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(group.isRunning ? Color.green.opacity(0.3) : Color.black.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+    }
+}
+
+private struct PillButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.75 : 1)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
