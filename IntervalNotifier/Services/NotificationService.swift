@@ -31,6 +31,11 @@ final class NotificationService {
         }
     }
 
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        let settings = await center.notificationSettings()
+        return settings.authorizationStatus
+    }
+
     func schedule(rule: NotifyRule) async throws {
         guard rule.intervalMinutes >= 1 else {
             throw NotificationServiceError.invalidInterval
